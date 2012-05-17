@@ -1,7 +1,7 @@
 import os.path
 from stat import S_ISDIR
 from libcloud.compute.ssh import SSHClient
-from paramiko.sftp import SFTPError
+
 
 class CloudSSHClient(SSHClient):
     
@@ -19,12 +19,14 @@ class CloudSSHClient(SSHClient):
             try:
                 sftp.mkdir(remotepath, mode=mode)
             except IOError, e:
+                if remotepath == "/":
+                    return False # it's bad if we're here
                 self.mkdir(sftp, remotepath.rsplit("/", 1)[0], mode=mode,
                            intermediate=True)
                 return sftp.mkdir(remotepath, mode=mode)
         else:
             sftp.mkdir(remotepath, mode=mode)
-
+        return True
 
     def put_dir_recursively(self,  localpath, remotepath, preserve_perm=True):
         "upload local directory to remote recursively"
