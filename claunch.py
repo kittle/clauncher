@@ -9,7 +9,7 @@ import random
 import os.path
 
 import paramiko
-from libcloud.compute.types import Provider, NodeState
+from libcloud.compute.types import NodeState
 from libcloud.compute.providers import get_driver
 from libcloud.compute.deployment import ScriptDeployment
 
@@ -51,10 +51,11 @@ def load_jobs_queue(filename):
         n += 1
 
 
+"""
 def generate_jobs():
     for i in range(JOBS_NUMBER):
         jobs_queue.put((i+1, "res" + str(i), JOBS_CMD))
-        
+"""        
 
 def ssh_client_for_node(node, info=""):
     if EC2_USE_INTERNAL_IP:
@@ -147,28 +148,8 @@ def do_work(node, job):
     ssh_client.close()
 
 
-"""
-def do_all(job):
-    conn = get_libcloud_conn()
-    try:
-        # activate
-        node = libcloud_create(conn)
-        #nsec = 5
-        #logger.info("Waiting for extra %s sec" % nsec)
-        #time.sleep(nsec)
-        do_work(node, job)
-#    except Exception, e:
-#        raise
-    finally:
-        # destory
-        logger.info("Destroing node %s" % node)
-        node.destroy()
-        logger.info("Destroyed node %s" % node)
-"""
-
-
-def worker_watchdog(worker):
-    pass
+#def worker_watchdog(worker):
+#    pass
 
 
 def worker(node):
@@ -208,14 +189,7 @@ def worker(node):
         libcloud_node_destroy(conn, node)
         #pass
     
-"""
-def run_in_threads(nodes):
-    for node in nodes:
-        t = threading.Thread(target=worker, args=(node,))
-        #t.daemon = True
-        t.start()
-"""
-
+    
 def get_libcloud_conn():
     Driver = get_driver(EC2_REGION)
     conn = Driver(EC2_ACCESS_ID, EC2_SECRET)
@@ -232,111 +206,6 @@ def libcloud_get_node_by_id(conn, nid):
         return nodes[0]
     else:
         raise RuntimeError("2+ nodes for same nodeid %s" % nid)
-    
-"""
-def libcloud_start():
-    
-    conn = get_libcloud_conn()
-    
-    # a simple script to install puppet post boot, can be much more complicated.
-    script = ScriptDeployment("apt-get -y install puppet")
-    
-    image = [i for i in conn.list_images() if i.id == EC2_AMI][0]
-    size = [s for s in conn.list_sizes() if s.id == EC2_TYPE][0]
-    
-    try:
-    # deploy_node takes the same base keyword arguments as create_node.
-        node = conn.deploy_node(name='test', image=image, size=size,
-            #deploy=script,
-                            
-            ssh_port = SSH_PORT,
-            ssh_username = SSH_USERNAME,
-            ssh_key=SSH_KEYPATH,
-            ex_keyname=EC2_KEYNAME,
-            
-            #ssh_timeout = 3000,
-            max_tries = 1
-            )
-    # <Node: uuid=..., name=test, state=3, public_ip=['1.1.1.1'], provider=EC2 ...>
-    # the node is now booted, with puppet installed.
-    
-    except Exception,e:
-        traceback.print_exc()
-        print e.__dict__
-        raise
-
-
-def libcloud_create(conn, count = 1):
-    logger.info("Launching...")
-    image = [i for i in conn.list_images() if i.id == EC2_AMI][0]
-    assert image
-    size = [s for s in conn.list_sizes() if s.id == EC2_TYPE][0]
-    assert size
-
-    node = conn.create_node(
-        name='claunch', image=image, size=size,
-        ex_keyname=EC2_KEYNAME,
-        ex_mincount = count,
-        ex_maxcount = count
-    )
-    node = conn._wait_until_running(node) # TODO: timeout ?
-    assert node.state == 0 # must be
-    
-    logger.info("Launched node %s" % node)
-    return node
-
-
-def libcloud_node_waiting(conn, node):
-    node = conn._wait_until_running(node)
-    assert node.state == 0
-    return node
-
-def libcloud_nodes_waiting(conn, nodes):
-
-    def newnodes_by_oldnodes(newnodes, oldnodes):
-        def new_by_old(nodes, node):
-            node_ = filter(lambda n:n.id == node.id, nodes)
-            assert len(node_) == 1
-            return node_[0]
-        return [new_by_old(newnodes, node) for node in oldnodes]
-
-    def check_nodes(nodes):
-        for node in nodes:
-            if not (node.public_ips and node.state == NodeState.RUNNING):
-                return False
-        return True
-
-    logger.info("Waiting for nodes")
-    for i in range(15):
-        newnodes = newnodes_by_oldnodes(
-                            conn.list_nodes(), nodes)
-
-        if not check_nodes(newnodes):
-            time.sleep(10)
-            continue
-        
-        logger.info("Nodes are ready")
-        return newnodes
-    else:
-        logger.error("Nodes are NOT ready")
-        raise RuntimeError("nodes still not running")
-
-
-def terminate_all():
-    def terrm(node):
-        conn = get_libcloud_conn()
-        conn.destroy_node(node)
-        
-    conn = get_libcloud_conn()
-    nodes = conn.list_nodes()[:2]
-    nodes = filter(lambda n: n.extra['instancetype'] == "t1.micro" and n.state==0, nodes)
-    print nodes
-    for node in nodes:
-        t = threading.Thread(target=terrm, args=(node,))
-        #t.daemon = True
-        t.start()
-"""
-
 
 
 def libcloud_nodes_launching(conn, count, node_name='claunch2'):
@@ -425,7 +294,6 @@ def libcloud_destroy_nodes(conn, nodes):
     #map(lambda x: x.destroy(), nodes)
     for node in nodes:
         libcloud_node_destroy(conn, node)
-
 
 
 def launch_nodes():
